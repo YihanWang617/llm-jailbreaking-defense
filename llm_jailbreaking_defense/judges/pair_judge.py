@@ -5,7 +5,7 @@ from llm_jailbreaking_defense.language_models import GPT
 
 class PAIRGPTJudge(LMJudge):
     """
-    The system prompt is copied from [PAIR](patrickrchao/JailbreakingLLMs)
+    The system prompt is copied from https://github.com/patrickrchao/JailbreakingLLMs
     """
     def __init__(self, goal, model_name="gpt-4", **kwargs):
         super().__init__(goal, model_name)
