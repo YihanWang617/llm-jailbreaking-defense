@@ -16,8 +16,9 @@ class SelfReminderDefenseConfig(DefenseConfig):
     prefix_only: bool = field(default=False) # this is if you want just system prompt
     suffix_only: bool = field(default=False) # this is if you want just user query
     max_n_tokens: int = field(default=512) # not sure if this is needed?
-    system_mode : str = field(default='remind') # this should be between warn, praise, remind
-
+    query_template: str = field(default='remind') # this should be between warn, praise, remind
+    system_template: str = field(default='remind')
+    
     def __post_init__(self):
         self.defense_method = "self_reminder"
 
@@ -26,6 +27,7 @@ class SelfReminderDefenseConfig(DefenseConfig):
         self.self_reminder_model = args.self_reminder_model
         self.prefix_only = args.self_reminder_prefix_only
         self.suffix_only = args.self_reminder_suffix_only
+        self.query_template = args.
 
 class SelfReminderDefense(DefenseBase):
     def __init__(self, config, preloaded_model, **kwargs):
@@ -34,11 +36,11 @@ class SelfReminderDefense(DefenseBase):
             preloaded_model=preloaded_model,
             model_name=config.self_reminder_model,
             max_n_tokens=config.max_n_tokens,
-            # system_mode ... needs to be implemented
+            add_system_prompt=no_system_prompt
         )
         self.prefix_only = prefix_only
         self.suffix_only = suffix_only
-        self.system_mode = system_mode
+        self.query_template = query_template
         
 
     def defense(self, prompt, target_lm, response=None):
