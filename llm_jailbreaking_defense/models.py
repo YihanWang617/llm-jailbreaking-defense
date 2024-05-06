@@ -191,7 +191,7 @@ class TargetLM():
         batch_size: int = 1,
         add_system_prompt: bool = True,
         template: str = None,
-        load_in_8bit: bool = True
+        quantization_config: BitsAndBytesConfig = None  # Add this parameter
     ):
         self.model_name = model_name
         self.temperature = temperature
@@ -200,11 +200,12 @@ class TargetLM():
         self.batch_size = batch_size
         self.add_system_prompt = add_system_prompt
         self.template = template
+        self.quantization_config = quantization_config  # Store the quantization configuration
 
         assert model_name is not None or preloaded_model is not None
         if preloaded_model is None:
             self.model, self.template = load_indiv_model(
-                model_name, max_memory=max_memory, load_in_8bit=load_in_8bit)
+                model_name, max_memory=max_memory, load_in_8bit=quantization_config.load_in_8bit)  # Use the quantization configuration
         else:
             self.model = preloaded_model
             assert template is not None or model_name is not None
