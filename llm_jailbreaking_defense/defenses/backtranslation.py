@@ -41,6 +41,9 @@ class BackTranslationDefense(DefenseBase):
         self.new_response_length = config.new_response_length
 
     def defense(self, prompt, target_lm, response=None):
+        # I'm testing to see why self_reminder_lm has the batched_generate issue
+        #test = self.infer_lm.get_response([prompt], verbose=self.verbose)[0]
+        #print("LINE45 BACKTRANSLATION.PY DEBUG", test)
         if self.verbose:
             print("Adversarial harmful prompt: \n", prompt)
         if response is None:
@@ -50,6 +53,7 @@ class BackTranslationDefense(DefenseBase):
             return "I'm sorry, but I cannot assist with that request."
 
         possible_prompt = self._infer_question(response)
+        print("LINE56 BACKTRANSLATION.PY DEBUG", possible_prompt)
         is_reasonable = self._filter_question_with_likelihood(
             possible_prompt, response)
         if not is_reasonable:
@@ -74,6 +78,9 @@ class BackTranslationDefense(DefenseBase):
         return "I'm sorry, but I cannot assist with that request."
 
     def _infer_question(self, response):
+        # PROBLEM: it looks like it never goes to _infer_question with the basic response
+        # ... this means that the infer_lm issue is maybe overlooked?
+        print("LINE80 BACKTRANSLATION.PY DEBUG")
         infer_prompt = (
             'Please guess the user\'s request the AI assistant answers in the '
             'following response from an AI assistant. '
@@ -86,6 +93,8 @@ class BackTranslationDefense(DefenseBase):
             print('Asking the model to infer the prompt:')
             print(infer_prompt)
         output = self.infer_lm.get_response([infer_prompt], verbose=self.verbose)[0]
+        print("LINE89 BACKTRANSLATION.PY DEBUG", output)
+        # I'm testing to see why self_reminder_lm has the batched_generate issue
         if ':' not in output:
             if self.verbose:
                 print(f"Parse error with output: {output}")

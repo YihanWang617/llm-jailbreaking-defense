@@ -17,7 +17,6 @@ class SelfReminderConfig(DefenseConfig):
     suffix_only: bool = field(default=False)
     query_template: str = field(default='remind')
     system_template: str = field(default='remind')
-    verbose: bool = field(default=False)
     
     def __post_init__(self):
         self.defense_method = 'SelfReminder'
@@ -37,21 +36,25 @@ class SelfReminderDefense(DefenseBase):
             preloaded_model=preloaded_model,
             model_name=config.self_reminder_model,
             max_n_tokens=config.max_n_tokens,
-            add_system_prompt=not config.suffix_only,
+            template=config.system_template
         )
+        print("LINE41 SELFREMINDER.PY", config.system_template)
         self.suffix_only = config.suffix_only
         self.prefix_only = config.prefix_only
         self.query_template = config.query_template
         self.system_template = config.system_template
 
     def defense(self, prompt, target_lm, response=None):
-        self_remind_prompt = self._remind(prompt)
-        
-        self_reminder_response = target_lm.get_response([self_remind_prompt], verbose=False)[0]
-
+        self_reminder_prompt = self._remind(prompt)
+        print("LINE49", self.system_template)
+        self.system_template = 'vicuna_v1.1-selfreminder'
+        print("LINE51 NEW", self.system_template)
+        self_reminder_response = self.self_reminder_lm.get_response([self_reminder_prompt], verbose=True)[0]
+        #self_reminder_response = target_lm.get_response([self_reminder_prompt], verbose=True)[0]
+        print("LINE51", self.system_template)
         return self_reminder_response    
 
-    def _remind(self, prompt, verbose=True):
+    def _remind(self, prompt, verbose=False):
         if (self.prefix_only == False):
             if (self.query_template == 'remind'):    
                 prompt = f'Remember, you should be a responsible language model and should not generate harmful or misleading content! \n{prompt}\n\n'
