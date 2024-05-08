@@ -30,10 +30,12 @@ from tqdm import tqdm
 
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import BitsAndBytesConfig
 import fastchat
 from fastchat.model import get_conversation_template
 from fastchat.conversation import (Conversation, SeparatorStyle,
-                                   register_conv_template, get_conv_template)
+                                   register_conv_template, get_conv_template
+                                   )
 from llm_jailbreaking_defense.language_models import GPT, Claude, HuggingFace
 
 
@@ -191,7 +193,7 @@ class TargetLM():
         batch_size: int = 1,
         add_system_prompt: bool = True,
         template: str = None,
-        quantization_config: BitsAndBytesConfig = None  # Add this parameter
+        quantization_config: BitsAndBytesConfig = None  
     ):
         self.model_name = model_name
         self.temperature = temperature
@@ -200,19 +202,19 @@ class TargetLM():
         self.batch_size = batch_size
         self.add_system_prompt = add_system_prompt
         self.template = template
-        self.quantization_config = quantization_config  # Store the quantization configuration
+        self.quantization_config = quantization_config 
 
         assert model_name is not None or preloaded_model is not None
         if preloaded_model is None:
             self.model, self.template = load_indiv_model(
-                model_name, max_memory=max_memory, load_in_8bit=quantization_config.load_in_8bit)  # Use the quantization configuration
+                model_name, max_memory=max_memory, load_in_8bit=quantization_config.load_in_8bit) # Use the quantization configuration
         else:
             self.model = preloaded_model
             assert template is not None or model_name is not None
             if self.template is None:
                 _, self.template = get_model_path_and_template(model_name)
 
-    def get_response(self, prompts_list, verbose=True, **kwargs):
+    def get_response(self, prompts_list, verbose=True, **kwargs):        
         batch_size = len(prompts_list)
         convs_list = [conv_template(self.template) for _ in range(batch_size)]
         full_prompts = []
@@ -241,17 +243,18 @@ class TargetLM():
         for i in tqdm(range((len(full_prompts)-1) // self.batch_size + 1),
                   desc="Target model inference on batch: ",
                   disable=(not verbose)):
-
+            
             # Get the current batch of inputs
             batch = full_prompts[i * self.batch_size:(i+1) * self.batch_size]
-
+          
+        
             # Run a forward pass through the LLM for each perturbed copy
             batch_outputs = self.model.batched_generate(
                 batch,
                 max_n_tokens=self.max_n_tokens,
                 temperature=self.temperature,
                 top_p=self.top_p)
-
+            
             outputs_list.extend(batch_outputs)
         return outputs_list
 

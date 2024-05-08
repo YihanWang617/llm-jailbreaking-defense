@@ -10,23 +10,17 @@ from ..models import TargetLM
 import warnings
 
 @dataclass
-class SelfReminderDefenseConfig(DefenseConfig):
-    self_reminder_model: str = field(default='gpt-3.5-turbo-0613') 
-    # this is taken from paraphrase.py, have not tested yet!!
-    prefix_only: bool = field(default=False) # this is if you want just system prompt
-    suffix_only: bool = field(default=False) # this is if you want just user query
-    max_n_tokens: int = field(default=512) 
-    query_template: str = field(default='remind') # this should be between warn, praise, remind
-    system_template: str = field(default=remind_template) # see template below
-
-    remind_template = "You should be a responsible ChatGPT and should not generate harmful or misleading content! Please answer the following user query in a responsible way."
-
-    warn_template = "You must be a responsible ChatGPT and must not generate harmful or misleading content! Please answer the following user query in a responsible way."
-
-    praise_template = "You are a responsible ChatGPT and good at avoiding generating harmful or misleading content! Please answer the following user query in a responsible way."
+class SelfReminderConfig(DefenseConfig):
+    self_reminder_model: str = field(default='vicuna') 
+    max_n_tokens: int = field(default=1024)
+    prefix_only: int = field(default=False)
+    suffix_only: bool = field(default=False)
+    query_template: str = field(default='remind')
+    system_template: str = field(default='remind')
+    verbose: bool = field(default=False)
     
     def __post_init__(self):
-        self.defense_method = "self_reminder"
+        self.defense_method = 'SelfReminder'
 
     def load_from_args(self, args):
         super().load_from_args(args)
@@ -35,7 +29,7 @@ class SelfReminderDefenseConfig(DefenseConfig):
         self.suffix_only = args.suffix_only
         self.query_template = args.query_template
         self.system_template = args.system_template
-
+        
 class SelfReminderDefense(DefenseBase):
     def __init__(self, config, preloaded_model, **kwargs):
         super().__init__(config)
@@ -43,44 +37,38 @@ class SelfReminderDefense(DefenseBase):
             preloaded_model=preloaded_model,
             model_name=config.self_reminder_model,
             max_n_tokens=config.max_n_tokens,
-            add_system_prompt=not suffix_only,
-            template=system_template
+            add_system_prompt=not config.suffix_only,
         )
-        self.prefix_only = prefix_only
-        self.query_template = query_template
+        self.suffix_only = config.suffix_only
+        self.prefix_only = config.prefix_only
+        self.query_template = config.query_template
+        self.system_template = config.system_template
 
     def defense(self, prompt, target_lm, response=None):
-        self_reminder_prompt = self._remind(prompt)
-        if "\n" in self_reminder_prompt:
-            warnings.warn("""A \\n character is found in the output of self-reminder model and the content after \\n is removed.""")
-            self_reminder_prompt = "\n".join(paraphrase_prompt.split('\n')[1:])
-        self_reminder_response = target_lm.get_response(
-            [self_reminder_prompt], verbose=self.verbose)[0] # this is taken from paraphrase.py. Where is self.verbose coming from?
+        self_remind_prompt = self._remind(prompt)
+        
+        self_reminder_response = target_lm.get_response([self_remind_prompt], verbose=False)[0]
 
-        return self_reminder_response
-            
+        return self_reminder_response    
 
-    def _remind(self, prompt, verbose=False):
-        # need to make different system modes
-        if (self.query_template == 'remind'):
-            prompt = f'Remember, you should be a responsible ChatGPT and should not generate harmful or misleading content! \n"{prompt}"\n\n'
-        elif (self.query_template == 'warn'):
-            prompt = f'Remember, you must be a responsible ChatGPT and must not generate harmful or misleading content! \n"{prompt}"\n\n'
-        elif (self.query_template == 'praise'):
-            prompt = f'Remember, you are be a responsible ChatGPT and good at avoiding generate harmful or misleading content! \n"{prompt}"\n\n'
-        else:
-            print("Error with query template (valid choices: remind, warn, praise) choice")
+    def _remind(self, prompt, verbose=True):
+        if (self.prefix_only == False):
+            if (self.query_template == 'remind'):    
+                prompt = f'Remember, you should be a responsible language model and should not generate harmful or misleading content! \n{prompt}\n\n'
+            elif (self.query_template == 'warn'):
+                prompt = f'Remember, you must be a responsible language model and must not generate harmful or misleading content! \n{prompt}\n\n'
+            elif (self.query_template == 'praise'):
+                prompt = f'Remember, you are be a responsible language model and good at avoiding generate harmful or misleading content! \n{prompt}\n\n'
+            else:
+                print('Error with query template (valid: remind, warn, praise) choice')
 
         if verbose:
-            print('Reminding the model that it should avoid harmful content:')
-            print(prompt)
+            print('Settings - Prefix-Only:', self.prefix_only,
+                  '\n         - Suffix-Only:', self.suffix_only,
+                  '\n         - Query Template:', self.query_template,
+                  '\n         - System Template:', self.system_template,
+                  '\n\nPrompt:', prompt, '\n')
 
-        output = self.self_reminder_lm.get_response([prompt], verbose=verbose)[0]
-        reminded_output = output.strip().strip(']').strip('[')
-
-        if verbose:
-            print('Output after being reminded:', reminded_output)
-
-        return reminded_output
+        return prompt
 
 
