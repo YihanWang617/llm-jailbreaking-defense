@@ -258,6 +258,7 @@ class TargetLM():
         print("LINE241 DEBUG:", self.template)
         # PROBLEM: manually changing this to 'vicuna_v1.1-selfreminder' throws an error:
         # 'str' object has no attribute 'append_message' (line ~260)
+        # FIXED?
         convs_list = [conv_template(self.template) for _ in range(batch_size)]
         print("LINE244 DEBUG CONVS LIST:", convs_list)
         full_prompts = []
@@ -293,6 +294,7 @@ class TargetLM():
           
         
             # Run a forward pass through the LLM for each perturbed copy
+            # PROBLEM: self_reminder_lm has an issue where it says it has no attribute 'batched_generate'
             batch_outputs = self.model.batched_generate(
                 batch,
                 max_n_tokens=self.max_n_tokens,
