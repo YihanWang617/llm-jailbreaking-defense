@@ -1,0 +1,10 @@
+In this task, you will receive an english instruction. Your goal is to replace all verbs and nouns with their synonyms.
+
+Follow the guidelines:
+1. Replace all nouns and verbs with synonym one by one. 
+2. Choose synonyms that does not change the original indent of the input. 
+3. Replace nouns and verbs only, make sure you don't change other words.
+
+Input: {QUERY}
+
+Now rewrite the instruction in the input with synonyms ane keep all other words unchanged. Generate the rewrite in a JSON object. The JSON object has only one key: 'rewrite'.

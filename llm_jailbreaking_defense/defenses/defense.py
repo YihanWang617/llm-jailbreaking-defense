@@ -4,6 +4,7 @@ from .smoothllm import SmoothLLMDefense, SmoothLLMConfig
 from .paraphrase import ParaphraseDefense, ParaphraseDefenseConfig
 from .base import DefenseBase, DefenseConfig
 from .ICL import ICLDefense, ICLDefenseConfig
+from .semantic_smoothing import SemanticSmoothConfig, SemanticSmoothDefense
 
 
 defense_dict = {
@@ -14,6 +15,7 @@ defense_dict = {
     'response_check': ResponseCheckDefense,
     'paraphrase_prompt': ParaphraseDefense,
     'ICL': ICLDefense,
+    'SemanticSmooth': SemanticSmoothDefense
 }
 
 defense_config_dict = {
@@ -23,7 +25,8 @@ defense_config_dict = {
     'paraphrase_prompt': ParaphraseDefenseConfig,
     'ICL': ICLDefenseConfig,
     'None': DefenseConfig,
-    None: DefenseConfig
+    None: DefenseConfig,
+    'SemanticSmooth': SemanticSmoothConfig
 }
 
 

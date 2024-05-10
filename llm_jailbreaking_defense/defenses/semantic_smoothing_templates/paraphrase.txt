@@ -1,0 +1,10 @@
+In this task, you will receive an english instruction. Your goal is to paraphrase it.
+
+Follow the guidelines:
+1. Paraphrase the instruction one sentence by one sentence.
+2. Ensure the paraphrase retains the original intent of the instruction.
+3. Do not omit any sentence from the original instruction.
+
+Input: {QUERY}
+
+Now paraphrase the instruction in the input. Generate the paraphrse in a JSON object. The JSON object has only one key: 'paraphrase'.

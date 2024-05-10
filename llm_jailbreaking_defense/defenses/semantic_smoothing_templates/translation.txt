@@ -1,0 +1,9 @@
+In this task, you will receive an english instruction. Your goal is to translate it into french.
+
+Follow the guidelines:
+1. Translate the instruction one sentence by one sentence.
+2. Ensure the translation retains the original intent of the instruction.
+
+Input: {QUERY}
+
+Now translate the instruction in the input. Generate the translation in a JSON object. The JSON object has only one key: 'translation'.

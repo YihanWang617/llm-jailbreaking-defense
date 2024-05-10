@@ -1,0 +1,10 @@
+In this task, you will receive an english instruction. Your goal is to correct all grammar error in it.
+
+Follow the guidelines:
+1. Review the sentences and find all grammar errors, e.g., incorrect spellings, improper verb usage.
+2. Correct these errors by rewriting the erroneous parts. 
+3. Ensure that all grammarly correct sentences remain in your fixed instruction. 
+
+Input: {QUERY}
+
+Now fix the grammar errors in the input. Generate the fixed instruction in a JSON object. The JSON object has only one key: 'fix'.

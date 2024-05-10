@@ -10,7 +10,6 @@ import numpy as np
 from tqdm import tqdm
 from dataclasses import dataclass, field
 from .base import DefenseBase, DefenseConfig
-from llm_jailbreaking_defense.judges import KeywordMatchingJudge
 
 @dataclass
 class SmoothLLMConfig(DefenseConfig):
@@ -32,8 +31,6 @@ class SmoothLLMConfig(DefenseConfig):
 class SmoothLLMDefense(DefenseBase):
     def __init__(self, config, **kwargs):
         super().__init__(config)
-        judge = KeywordMatchingJudge("")
-        self.judge = judge
         self.batch_size = config.batch_size
         self.num_samples = config.num_samples
         self.perturbation_type = config.perturbation_type

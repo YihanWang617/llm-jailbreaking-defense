@@ -1,0 +1,10 @@
+In this task, you will receive an english instruction. Your goal is to generate a consise sumamry of it.
+
+Follow the guidelines:
+1. Ensure that the summary retains the original intent of the instruction.
+2. Keep the summary as brief as possible.
+3. Do not omit any critical elements from the original instruction.
+
+Input: {QUERY}
+
+Now summarize the instruction in the input. Generate the summary in a JSON object. The JSON object has only one key: 'summary'. 
