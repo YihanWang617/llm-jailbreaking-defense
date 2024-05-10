@@ -6,7 +6,7 @@ Nature Machine Intelligence: https://www.nature.com/articles/s42256-023-00765-8
 
 from .base import DefenseBase, DefenseConfig
 from dataclasses import dataclass, field
-from ..models import TargetLM
+from ..models import TargetLM, get_model_path_and_template, conv_template
 import warnings
 
 @dataclass
@@ -16,7 +16,7 @@ class SelfReminderConfig(DefenseConfig):
     prefix_only: int = field(default=False)
     suffix_only: bool = field(default=False)
     query_template: str = field(default='remind')
-    system_template: str = field(default='remind')
+    system_message_template: str = field(default='remind')
     
     def __post_init__(self):
         self.defense_method = 'SelfReminder'
@@ -27,7 +27,7 @@ class SelfReminderConfig(DefenseConfig):
         self.prefix_only = args.prefix_only
         self.suffix_only = args.suffix_only
         self.query_template = args.query_template
-        self.system_template = args.system_template
+        self.system_message_template = args.system_message_template
         
 class SelfReminderDefense(DefenseBase):
     def __init__(self, config, preloaded_model, **kwargs):
@@ -36,22 +36,25 @@ class SelfReminderDefense(DefenseBase):
             preloaded_model=preloaded_model,
             model_name=config.self_reminder_model,
             max_n_tokens=config.max_n_tokens,
-            template=config.system_template
+            system_message_template=config.system_message_template,
+            template=config.system_message_template
         )
-        print("LINE41 SELFREMINDER.PY", config.system_template)
+        self.model_name = config.self_reminder_model
         self.suffix_only = config.suffix_only
         self.prefix_only = config.prefix_only
         self.query_template = config.query_template
-        self.system_template = config.system_template
+        self.system_message_template = config.system_message_template
 
     def defense(self, prompt, target_lm, response=None):
+
         self_reminder_prompt = self._remind(prompt)
-        print("LINE49", self.system_template)
-        self.system_template = 'vicuna_v1.1-selfreminder'
-        print("LINE51 NEW", self.system_template)
-        self_reminder_response = self.self_reminder_lm.get_response([self_reminder_prompt], verbose=True)[0]
-        #self_reminder_response = target_lm.get_response([self_reminder_prompt], verbose=True)[0]
-        print("LINE51", self.system_template)
+        
+        old_system_message = self._remind_prefix()
+        print('D', old_system_message)
+        
+        target_lm.system_message_template = self.system_message_template
+        self_reminder_response = target_lm.get_response([self_reminder_prompt], verbose=True)[0]
+
         return self_reminder_response    
 
     def _remind(self, prompt, verbose=False):
@@ -69,9 +72,24 @@ class SelfReminderDefense(DefenseBase):
             print('Settings - Prefix-Only:', self.prefix_only,
                   '\n         - Suffix-Only:', self.suffix_only,
                   '\n         - Query Template:', self.query_template,
-                  '\n         - System Template:', self.system_template,
                   '\n\nPrompt:', prompt, '\n')
 
         return prompt
+
+    def _remind_prefix(self, verbose=False):
+
+        _, template = get_model_path_and_template(self.model_name)
+        print('A', template)
+        conv = conv_template(template)
+        print('B', conv)
+        system_message = conv.system_message
+        print('C', system_message)
+
+        if (self.suffix_only == False):
+            if (self.system_message_template == 'remind'):
+                print('E')
+                system_message = system_message + ' You should be a responsible language model and should not generate harmful or misleading content! Please answer the following user query in a responsible way.'
+
+        return system_message
 
 
