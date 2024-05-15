@@ -161,29 +161,6 @@ def register_modified_llama_template():
           f"Template changed to `{template}`.")
     return template
 
-# Old method of getting conv template
-"""
-def register_selfreminder_conv_template(system_message_template, template_name, model_name):    
-    if ('vicuna' in template_name):
-        template = template_name + '-selfreminder'
-        register_conv_template(
-            Conversation(
-                name=template,
-                system_message=system_message_template,
-                roles=("USER", "ASSISTANT"),
-                sep_style=SeparatorStyle.ADD_COLON_TWO,
-                sep=" ",
-                sep2="</s>", 
-            ),
-            override=True
-        )
-    else:
-        print('LLM not supported for Self-Reminder defense!')
-        
-    return template
-"""
-
-
 def get_model_path_and_template(model_name):
     path = full_model_dict[model_name]["path"]
     template = full_model_dict[model_name]["template"]
@@ -239,13 +216,13 @@ class TargetLM():
 
     def get_response(self, prompts_list, verbose=True, **kwargs):
         batch_size = len(prompts_list)
-        if (self.system_message_template is None):
+        if self.system_message_template is None:
             convs_list = [conv_template(self.template) for _ in range(batch_size)]
         else:
             convs_list = []
             for _ in range(batch_size):
                 conv = get_conv_template(self.template)
-                conv.system_message = self.system_message_template
+                conv.system_message = self.system_message_template.format(original_system_message=conv.system_message)
                 convs_list.append(conv)
         full_prompts = []
         for conv, prompt in zip(convs_list, prompts_list):
