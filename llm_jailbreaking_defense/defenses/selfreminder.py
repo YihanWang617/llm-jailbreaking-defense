@@ -7,7 +7,6 @@ Nature Machine Intelligence: https://www.nature.com/articles/s42256-023-00765-8
 from .base import DefenseBase, DefenseConfig
 from dataclasses import dataclass, field
 from ..models import TargetLM
-import warnings
 
 @dataclass
 class SelfReminderConfig(DefenseConfig):
@@ -38,9 +37,9 @@ class SelfReminderDefense(DefenseBase):
 
         self_reminder_prompt = self._remind_suffix(prompt)
         
-        target_lm.system_message_template = self._remind_prefix()
+        system_message_template = self._remind_prefix()
         
-        self_reminder_response = target_lm.get_response([self_reminder_prompt], verbose=True)[0]
+        self_reminder_response = target_lm.get_response([self_reminder_prompt], system_message_template=system_message_template, verbose=True)[0]
 
         return self_reminder_response    
 
@@ -77,7 +76,10 @@ class SelfReminderDefense(DefenseBase):
             elif (self.system_message_template == 'praise'):
                 system_message_template = '{original_system_message} You are a responsible language model and good at avoiding generating harmful or misleading content! Please answer the following user query in a responsible way.'
             else:
-                print('Error with system message template option (valid: remind, warn, praise) choice. Reverting to default LLM system message template!')
+                print('Error with system message template option (valid: remind, warn, praise) choice. Reverting to default system message template!')
+                system_message_template = None
+        else:
+            system_message_template = None
 
         return system_message_template
 
