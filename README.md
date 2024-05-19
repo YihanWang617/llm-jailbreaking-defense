@@ -98,7 +98,7 @@ or develop new defense methods using this library.
 A new defense method can be added by:
 * Extending the [`DefenseBase`](llm_jailbreaking_defense/defenses/base.py) class for the implemention of the defense.
 * Extending the [`DefenseConfig`](llm_jailbreaking_defense/defenses/base.py) class for the configuration of the defense.
-* Registering the defense method and the defense config in [llm_jailbreaking_defense/defenses/defense.py](defenses/defense.py).
+* Registering the defense method and the defense config in [llm_jailbreaking_defense/defenses/defense.py](llm_jailbreaking_defense/defenses/defense.py).
 
 ## Judging Responses
 
