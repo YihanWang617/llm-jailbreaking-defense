@@ -10,7 +10,7 @@ class QualityGPTJudge(LMJudge):
     The prompt is copied from FastChat/llm_judge
     """
     def __init__(self, goal, model_name, **kwargs):
-        super().__init__(goal, model_name)
+        super().__init__(goal, model_name, **kwargs)
         self.judge_model = GPT(model_name = model_name)
         self.system_prompt = "You are a helpful assistant."
 

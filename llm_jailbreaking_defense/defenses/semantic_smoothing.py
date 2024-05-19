@@ -21,7 +21,6 @@ sys.path.append("./")
 @dataclass
 class SemanticSmoothConfig(DefenseConfig):
     perturbation_type: str = field(default='random')
-    perturbation_ratio: float = field(default=0.1)
     num_samples: int = field(default=3)
     judge_name: str = field(default='pair@gpt-4')
     perturbation_lm: str = field(default='vicuna')
@@ -36,12 +35,9 @@ class SemanticSmoothConfig(DefenseConfig):
         super().load_from_args(args)
         # Available types: insert, swap, patch
         self.perturbation_type = args.SmoothLLM_perturbation_type
-        self.perturbation_ratio = args.SmoothLLM_perturbation_ratio
         self.num_samples = args.SmoothLLM_perturbation_num_samples
-        self.perturbation_lm = args.perturbation_lm
-        self.perturbation_lm_length = args.perturbation_lm_length
-        self.perturbation_lm_max_memory = args.perturbation_lm_max_memory
         self.judge_name = args.judge_name
+        self.perturbation_lm = args.target_model
 
 
 
@@ -56,17 +52,17 @@ class SemanticSmoothDefense(DefenseBase):
         self.batch_size = config.batch_size
         self.num_samples = config.num_samples
         self.perturbation_type = config.perturbation_type
-        self.perturbation_ratio = config.perturbation_ratio
         self.judge_name = config.judge_name
+        
+        assert self.judge_name[0] == 'gcg_matching'
+        self.judge = load_judge(self.judge_name[0], '')
 
 
     def defense(self, prompt, target_lm, response=None):
         all_inputs = []
         for _ in range(self.num_samples):
             all_inputs.append(self._random_perturb(prompt))
-        import pdb; pdb.set_trace()
         all_inputs = self.extract_res(all_inputs)
-        import pdb; pdb.set_trace()
         # Iterate each batch of inputs
         all_outputs = []
         for i in tqdm(range(self.num_samples // self.batch_size + 1),
@@ -82,15 +78,15 @@ class SemanticSmoothDefense(DefenseBase):
             all_outputs.extend(batch_outputs)
 
         # Check whether the outputs jailbreak the LLM
-        are_copies_jailbroken = [self._is_jailbroken(s) for s in all_outputs]
+        are_copies_jailbroken = [1 if (self.judge.score([p], [s])[0] == 10) else 0 for p, s in zip(all_inputs, all_outputs)]
         if len(are_copies_jailbroken) == 0:
             raise ValueError("LLM did not generate any outputs.")
 
         outputs_and_jbs = zip(all_outputs, are_copies_jailbroken)
 
-        # Determine whether SmoothLLM was jailbroken
+        # Determine whether SemanticSmoothing was jailbroken
         jb_percentage = np.mean(are_copies_jailbroken)
-        SmoothLLM_jb = True if jb_percentage > 0.5 else False
+        SmoothLLM_jb = 1 if jb_percentage > 0.5 else 0
 
         # Pick a response that is consistent with the majority vote
         majority_outputs = [
@@ -108,6 +104,7 @@ class SemanticSmoothDefense(DefenseBase):
         if self.perturbation_type in ["paraphrase", "spellcheck", "summarize", "synonym", "translation", "verbtense"]:
             return self.perturbe(self.perturbation_type, harmful_prompt)
         else:
+            print(f"{self.perturbation_type} is not implemented!")
             raise NotImplementedError
 
     def perturbe_with_llm(self, template, harmful_prompt):
