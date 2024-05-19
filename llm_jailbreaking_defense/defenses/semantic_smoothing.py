@@ -22,7 +22,6 @@ sys.path.append("./")
 class SemanticSmoothConfig(DefenseConfig):
     perturbation_type: str = field(default='random')
     num_samples: int = field(default=3)
-    judge_name: str = field(default='pair@gpt-4')
     perturbation_lm: str = field(default='vicuna')
     perturbation_lm_length: int = field(default=300)
     perturbation_lm_max_memory: float = field(default=None)
@@ -36,7 +35,6 @@ class SemanticSmoothConfig(DefenseConfig):
         # Available types: insert, swap, patch
         self.perturbation_type = args.SmoothLLM_perturbation_type
         self.num_samples = args.SmoothLLM_perturbation_num_samples
-        self.judge_name = args.judge_name
         self.perturbation_lm = args.target_model
 
 
@@ -51,11 +49,8 @@ class SemanticSmoothDefense(DefenseBase):
                             preloaded_model=preloaded_model)
         self.batch_size = config.batch_size
         self.num_samples = config.num_samples
-        self.perturbation_type = config.perturbation_type
-        self.judge_name = config.judge_name
-        
-        assert self.judge_name[0] == 'gcg_matching'
-        self.judge = load_judge(self.judge_name[0], '')
+        self.perturbation_type = config.perturbation_type 
+        self.judge = load_judge('gcg-matching', '')
 
 
     def defense(self, prompt, target_lm, response=None):
@@ -68,7 +63,6 @@ class SemanticSmoothDefense(DefenseBase):
         for i in tqdm(range(self.num_samples // self.batch_size + 1),
                       desc="Semantic Smooth inference on batch: ",
                       disable=(not self.verbose)):
-
             # Get the current batch of inputs
             batch = all_inputs[i * self.batch_size:(i+1) * self.batch_size]
 
