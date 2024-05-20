@@ -84,6 +84,7 @@ this library has also supported several other defenses which can be loaded simpl
 
 | Defense name | Configuration name | Source |
 | -------- | ------- | ------- |
+| Backtranslation | `BacktranslationConfig` | [Defending LLMs against Jailbreaking Attacks via Backtranslation](https://arxiv.org/abs/2402.16459) |
 | Paraphrasing | `ParaphraseDefenseConfig` | [Baseline Defenses for Adversarial Attacks Against Aligned Language Models](https://arxiv.org/abs/2309.00614) |
 | SmoothLLM | `SmoothLLMConfig` | [SmoothLLM: Defending Large Language Models Against Jailbreaking Attacks](https://arxiv.org/abs/2310.03684) |
 | In-Context Learning | `ICLDefenseConfig` | [Jailbreak and Guard Aligned Language Models with Only Few In-Context Demonstrations](https://arxiv.org/abs/2310.06387) |
