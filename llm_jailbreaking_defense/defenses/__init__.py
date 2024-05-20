@@ -5,3 +5,4 @@ from llm_jailbreaking_defense.defenses.response_check import ResponseCheckDefens
 from llm_jailbreaking_defense.defenses.smoothllm import SmoothLLMDefense, SmoothLLMConfig
 from llm_jailbreaking_defense.defenses.paraphrase import ParaphraseDefense, ParaphraseDefenseConfig
 from llm_jailbreaking_defense.defenses.ICL import ICLDefense, ICLDefenseConfig
+from llm_jailbreaking_defense.defenses.semantic_smoothing import SemanticSmoothConfig, SemanticSmoothDefense
