@@ -29,7 +29,7 @@ from packaging import version
 from tqdm import tqdm
 
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 import fastchat
 from fastchat.model import get_conversation_template
 from fastchat.conversation import (Conversation, SeparatorStyle,
@@ -161,7 +161,6 @@ def register_modified_llama_template():
           f"Template changed to `{template}`.")
     return template
 
-
 def get_model_path_and_template(model_name):
     path = full_model_dict[model_name]["path"]
     template = full_model_dict[model_name]["template"]
@@ -191,7 +190,7 @@ class TargetLM():
         batch_size: int = 1,
         add_system_prompt: bool = True,
         template: str = None,
-        load_in_8bit: bool = True
+        quantization_config: BitsAndBytesConfig = None,
     ):
         self.model_name = model_name
         self.temperature = temperature
@@ -200,20 +199,29 @@ class TargetLM():
         self.batch_size = batch_size
         self.add_system_prompt = add_system_prompt
         self.template = template
+        self.quantization_config = quantization_config
 
         assert model_name is not None or preloaded_model is not None
         if preloaded_model is None:
             self.model, self.template = load_indiv_model(
-                model_name, max_memory=max_memory, load_in_8bit=load_in_8bit)
+                model_name, max_memory=max_memory, load_in_8bit=quantization_config.load_in_8bit)
         else:
             self.model = preloaded_model
             assert template is not None or model_name is not None
             if self.template is None:
                 _, self.template = get_model_path_and_template(model_name)
 
-    def get_response(self, prompts_list, verbose=True, **kwargs):
+
+    def get_response(self, prompts_list, system_message_template=None, verbose=True, **kwargs):
         batch_size = len(prompts_list)
-        convs_list = [conv_template(self.template) for _ in range(batch_size)]
+        if system_message_template is None:
+            convs_list = [conv_template(self.template) for _ in range(batch_size)]
+        else:
+            convs_list = []
+            for _ in range(batch_size):
+                conv = conv_template(self.template)
+                conv.system_message = system_message_template.format(original_system_message=conv.system_message)
+                convs_list.append(conv)
         full_prompts = []
         for conv, prompt in zip(convs_list, prompts_list):
             if isinstance(prompt, str):

@@ -5,7 +5,7 @@ from .paraphrase import ParaphraseDefense, ParaphraseDefenseConfig
 from .base import DefenseBase, DefenseConfig
 from .ICL import ICLDefense, ICLDefenseConfig
 from .semantic_smoothing import SemanticSmoothConfig, SemanticSmoothDefense
-
+from .self_reminder import SelfReminderConfig, SelfReminderDefense
 
 defense_dict = {
     'None': DefenseBase,
@@ -14,6 +14,7 @@ defense_dict = {
     'backtranslation': BackTranslationDefense,
     'response_check': ResponseCheckDefense,
     'paraphrase_prompt': ParaphraseDefense,
+    'SelfReminder': SelfReminderDefense,
     'ICL': ICLDefense,
     'SemanticSmooth': SemanticSmoothDefense
 }
@@ -24,6 +25,7 @@ defense_config_dict = {
     'response_check': ResponseCheckConfig,
     'paraphrase_prompt': ParaphraseDefenseConfig,
     'ICL': ICLDefenseConfig,
+    'SelfReminder': SelfReminderConfig,
     'None': DefenseConfig,
     None: DefenseConfig,
     'SemanticSmooth': SemanticSmoothConfig

@@ -6,3 +6,4 @@ from llm_jailbreaking_defense.defenses.smoothllm import SmoothLLMDefense, Smooth
 from llm_jailbreaking_defense.defenses.paraphrase import ParaphraseDefense, ParaphraseDefenseConfig
 from llm_jailbreaking_defense.defenses.ICL import ICLDefense, ICLDefenseConfig
 from llm_jailbreaking_defense.defenses.semantic_smoothing import SemanticSmoothConfig, SemanticSmoothDefense
+from llm_jailbreaking_defense.defenses.self_reminder import SelfReminderConfig, SelfReminderDefense
