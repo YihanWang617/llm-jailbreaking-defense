@@ -89,6 +89,7 @@ this library has also supported several other defenses which can be loaded simpl
 | In-Context Learning | `ICLDefenseConfig` | [Jailbreak and Guard Aligned Language Models with Only Few In-Context Demonstrations](https://arxiv.org/abs/2310.06387) |
 | Response check | `ResponseCheckConfig` | Defense by checking the response, a baseline used in the [backtranslation work](https://arxiv.org/abs/2402.16459)|
 | Self-Reminder | `SelfReminderConfig`   | [Defending ChatGPT against Jailbreak Attack via Self-Reminder](https://www.nature.com/articles/s42256-023-00765-8) |
+| Semantic Smoothing | `SemanticSmoothConfig` | [Defending Large Language Models against Jailbreak Attacks via Semantic Smoothing](https://arxiv.org/abs/2402.16192) |
 
 ### Contributing to the Library
 
