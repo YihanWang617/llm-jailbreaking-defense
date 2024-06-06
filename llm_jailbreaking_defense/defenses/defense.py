@@ -7,6 +7,7 @@ from .ICL import ICLDefense, ICLDefenseConfig
 from .semantic_smoothing import SemanticSmoothConfig, SemanticSmoothDefense
 from .self_reminder import SelfReminderConfig, SelfReminderDefense
 
+
 defense_dict = {
     'None': DefenseBase,
      None: DefenseBase,
