@@ -54,6 +54,10 @@ full_model_dict = {
         "path":"gpt-3.5-turbo-0613",
         "template":"gpt-3.5-turbo"
     },
+    "gpt-3.5-turbo-0125": {
+        "path":"gpt-3.5-turbo-0125",
+        "template":"gpt-3.5-turbo"
+    },
     "vicuna": {
         "path": "lmsys/vicuna-13b-v1.5",
         "template": "vicuna_v1.1"
@@ -92,14 +96,14 @@ def conv_template(template_name):
     return template
 
 
-def load_indiv_model(model_name, max_memory=None, load_in_8bit=True):
+def load_indiv_model(model_name, max_memory=None, quantization_config=None):
     model_path, template = get_model_path_and_template(model_name)
     if model_name.startswith("gpt-"):
         lm = GPT(model_name)
     elif model_name.startswith("claude-"):
         lm = Claude(model_name)
     else:
-        if load_in_8bit:
+        if quantization_config is not None:
             if max_memory is not None:
                 max_memory = {i: f"{max_memory}MB"
                             for i in range(torch.cuda.device_count())}
@@ -107,8 +111,8 @@ def load_indiv_model(model_name, max_memory=None, load_in_8bit=True):
             model = AutoModelForCausalLM.from_pretrained(
                     model_path,
                     low_cpu_mem_usage=True, device_map="auto",
-                    load_in_8bit=True,
-                    max_memory=max_memory).eval()
+                    max_memory=max_memory,
+                    quantization_config=quantization_config).eval()
         else:
             model = AutoModelForCausalLM.from_pretrained(
                 model_path,
@@ -190,7 +194,7 @@ class TargetLM():
         batch_size: int = 1,
         add_system_prompt: bool = True,
         template: str = None,
-        quantization_config: BitsAndBytesConfig = None,
+        load_in_8bit: bool = False,
     ):
         self.model_name = model_name
         self.temperature = temperature
@@ -199,12 +203,15 @@ class TargetLM():
         self.batch_size = batch_size
         self.add_system_prompt = add_system_prompt
         self.template = template
-        self.quantization_config = quantization_config
+        self.quantization_config = BitsAndBytesConfig(load_in_8bit=load_in_8bit)
 
         assert model_name is not None or preloaded_model is not None
         if preloaded_model is None:
-            self.model, self.template = load_indiv_model(
-                model_name, max_memory=max_memory, load_in_8bit=quantization_config.load_in_8bit)
+            if not load_in_8bit:
+                self.model, self.template = load_indiv_model(model_name)
+            else:
+                self.model, self.template = load_indiv_model(
+                    model_name, max_memory=max_memory, quantization_config=self.quantization_config)
         else:
             self.model = preloaded_model
             assert template is not None or model_name is not None
@@ -240,7 +247,7 @@ class TargetLM():
                 full_prompts.append(conv.get_prompt())
 
         if not self.add_system_prompt:
-            remove_system_prompts_pap(self, full_prompts)
+            full_prompts = remove_system_prompts_pap(self, full_prompts)
 
         if verbose:
             print(f"Calling the TargetLM with {len(full_prompts)} prompts")
@@ -298,6 +305,7 @@ def remove_system_prompts_pap(target_lm, full_prompts):
     if "gpt" in target_lm.model_name:
         full_prompts = [[a for a in message if a["role"] != "system"]
                             for message in full_prompts]
+        return full_prompts
     elif "llama" in target_lm.model_name:
         for i, prompt in enumerate(full_prompts):
             assert prompt.startswith("[INST]")
@@ -308,5 +316,6 @@ def remove_system_prompts_pap(target_lm, full_prompts):
                 f"[INST] <<SYS>>\n{None}\n<</SYS>>\n\n"
                 f"{prompt[0][7:-8]} [/INST]"
             )
+        return full_prompts
     else:
         raise NotImplementedError

@@ -64,6 +64,7 @@ class HuggingFace(LanguageModel):
         inputs = self.tokenizer(prompts, return_tensors='pt', padding=True)
         inputs = {k: v.to(self.model.device.index) for k, v in inputs.items()}
 
+
         # Batched generation
         if temperature > 0:
             do_sample = True
@@ -132,7 +133,7 @@ class GPT(LanguageModel):
     API_ERROR_OUTPUT = "$ERROR$"
     API_QUERY_SLEEP = 0.5
     API_MAX_RETRY = 5
-    API_TIMEOUT = 20
+    API_TIMEOUT = 200
     openai.api_key = os.getenv("OPENAI_API_KEY")
 
     def generate(self,
