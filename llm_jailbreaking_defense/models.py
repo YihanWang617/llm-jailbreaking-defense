@@ -96,7 +96,7 @@ def conv_template(template_name):
     return template
 
 
-def load_indiv_model(model_name, max_memory=None, quantization_config=None):
+def load_model(model_name, max_memory=None, quantization_config=None):
     model_path, template = get_model_path_and_template(model_name)
     if model_name.startswith("gpt-"):
         lm = GPT(model_name)
@@ -118,23 +118,29 @@ def load_indiv_model(model_name, max_memory=None, quantization_config=None):
                 model_path,
                 torch_dtype=torch.float16,
                 low_cpu_mem_usage=True,device_map="auto").eval()
-
-        tokenizer = AutoTokenizer.from_pretrained(
-            model_path,
-            use_fast=False
-        )
-        if "llama-2" in model_path.lower():
-            tokenizer.pad_token = tokenizer.unk_token
-            tokenizer.padding_side = "left"
-        if "vicuna" in model_path.lower():
-            tokenizer.pad_token = tokenizer.eos_token
-            tokenizer.padding_side = "left"
-        if not tokenizer.pad_token:
-            tokenizer.pad_token = tokenizer.eos_token
-
-        lm = HuggingFace(model_name, model, tokenizer)
+        tokenizer = load_tokenizer(model_path)
+        lm = HuggingFace(model, tokenizer)
 
     return lm, template
+
+
+def load_tokenizer(model_path):
+    tokenizer = AutoTokenizer.from_pretrained(
+        model_path,
+        use_fast=False
+    )
+    if "llama-3" in model_path.lower():
+        tokenizer.pad_token = tokenizer.eos_token
+        tokenizer.padding_side = "left"
+    if "llama-2" in model_path.lower():
+        tokenizer.pad_token = tokenizer.unk_token
+        tokenizer.padding_side = "left"
+    if "vicuna" in model_path.lower():
+        tokenizer.pad_token = tokenizer.eos_token
+        tokenizer.padding_side = "left"
+    if not tokenizer.pad_token:
+        tokenizer.pad_token = tokenizer.eos_token
+    return tokenizer
 
 
 def register_model_path_and_template(model_name, model_path, model_template):
@@ -164,6 +170,7 @@ def register_modified_llama_template():
     print("Using LLaMA-2 with fastchat < 0.2.24. "
           f"Template changed to `{template}`.")
     return template
+
 
 def get_model_path_and_template(model_name):
     path = full_model_dict[model_name]["path"]
@@ -208,9 +215,9 @@ class TargetLM():
         assert model_name is not None or preloaded_model is not None
         if preloaded_model is None:
             if not load_in_8bit:
-                self.model, self.template = load_indiv_model(model_name)
+                self.model, self.template = load_model(model_name)
             else:
-                self.model, self.template = load_indiv_model(
+                self.model, self.template = load_model(
                     model_name, max_memory=max_memory, quantization_config=self.quantization_config)
         else:
             self.model = preloaded_model
@@ -220,6 +227,10 @@ class TargetLM():
 
 
     def get_response(self, prompts_list, system_message_template=None, verbose=True, **kwargs):
+        only_one_prompt = isinstance(prompts_list, str)
+        if only_one_prompt:
+            prompts_list = [prompts_list]
+
         batch_size = len(prompts_list)
         if system_message_template is None:
             convs_list = [conv_template(self.template) for _ in range(batch_size)]
@@ -253,21 +264,21 @@ class TargetLM():
             print(f"Calling the TargetLM with {len(full_prompts)} prompts")
         outputs_list = []
         for i in tqdm(range((len(full_prompts)-1) // self.batch_size + 1),
-                  desc="Target model inference on batch: ",
-                  disable=(not verbose)):
-
+                      desc="Target model inference on batch: ",
+                      disable=(not verbose)):
             # Get the current batch of inputs
             batch = full_prompts[i * self.batch_size:(i+1) * self.batch_size]
-
-            # Run a forward pass through the LLM for each perturbed copy
             batch_outputs = self.model.batched_generate(
                 batch,
                 max_n_tokens=self.max_n_tokens,
                 temperature=self.temperature,
                 top_p=self.top_p)
-
             outputs_list.extend(batch_outputs)
-        return outputs_list
+
+        if only_one_prompt:
+            return outputs_list[0]
+        else:
+            return outputs_list
 
     def evaluate_log_likelihood(self, prompt, response):
         return self.model.evaluate_log_likelihood(prompt, response)

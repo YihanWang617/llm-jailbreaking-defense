@@ -36,9 +36,9 @@ from llm_jailbreaking_defense import TargetLM, HuggingFace
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 # Load the model and tokenizer from Huggingface.
-transformer_model = AutoModelForCausalLM.from_pretrained('google/gemma-7b')
+transformer_model = AutoModelForCausalLM.from_pretrained('google/gemma-7b').cuda()
 tokenizer = AutoTokenizer.from_pretrained('google/gemma-7b')
-model = HuggingFace('gemma', transformer_model, tokenizer)
+model = HuggingFace(transformer_model, tokenizer)
 
 # Use the preloaded HuggingFace model with a fschat conversation template `gemma`.
 # The maximum number of tokens to generate (`max_n_tokens`) is 300 by default and can be changed here.

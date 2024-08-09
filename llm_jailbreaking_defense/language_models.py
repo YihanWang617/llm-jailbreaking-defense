@@ -31,7 +31,7 @@ from typing import Dict, List
 
 
 class LanguageModel():
-    def __init__(self, model_name):
+    def __init__(self, model_name: str = None):
         self.model_name = model_name
 
     def batched_generate(self, prompts: List, max_n_tokens: int, temperature: float):
@@ -50,8 +50,8 @@ class LanguageModel():
 
 
 class HuggingFace(LanguageModel):
-    def __init__(self, model_name, model, tokenizer):
-        super().__init__(model_name)
+    def __init__(self, model, tokenizer):
+        super().__init__()
         self.model = model
         self.tokenizer = tokenizer
         self.eos_token_ids = [self.tokenizer.eos_token_id]

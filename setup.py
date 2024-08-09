@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-VERSION = '0.0.1'
+VERSION = '0.0.2'
 DESCRIPTION = 'A package for jailbreaking defenses'
 
 setup(
@@ -30,7 +30,7 @@ setup(
         "scipy>=1.11",
         "ml_collections>=0.1.1",
         "nltk>=3.8",
-        "aiohttp==3.8.1",
+        "aiohttp>=3.8.1",
         "fsspec[http]<=2024.2.0,>=2023.1.0"
     ],
     keywords=["Large Language Model", "LLM", "jailbreaking", "robustness"],
