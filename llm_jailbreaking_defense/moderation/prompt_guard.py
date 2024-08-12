@@ -19,8 +19,8 @@ class PromptGuard(Moderation):
                 'score': 1 - ret_raw['score']
             }
         else:
-            ret.append({
+            ret = {
                 'type': ret_raw['label'],
                 'score': ret_raw['score']
-            })
+            }
         return ret
