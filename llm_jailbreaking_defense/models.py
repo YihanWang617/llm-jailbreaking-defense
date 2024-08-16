@@ -215,21 +215,24 @@ class TargetLM():
         self.batch_size = batch_size
         self.add_system_prompt = add_system_prompt
         self.template = template
-        self.quantization_config = BitsAndBytesConfig(load_in_8bit=load_in_8bit)
+
+        if load_in_8bit:
+            self.quantization_config = BitsAndBytesConfig(load_in_8bit=True)
+        else:
+            self.quantization_config = None
 
         assert model_name is not None or preloaded_model is not None
         if preloaded_model is None:
-            if not load_in_8bit:
-                self.model, self.template = load_model(model_name)
-            else:
-                self.model, self.template = load_model(
-                    model_name, max_memory=max_memory, quantization_config=self.quantization_config)
+            self.model, self.template = load_model(
+                model_name,
+                max_memory=max_memory,
+                quantization_config=self.quantization_config
+            )
         else:
             self.model = preloaded_model
             assert template is not None or model_name is not None
             if self.template is None:
                 _, self.template = get_model_path_and_template(model_name)
-
 
     def get_response(self, prompts_list, system_message_template=None, verbose=True, **kwargs):
         only_one_prompt = isinstance(prompts_list, str)
@@ -243,7 +246,8 @@ class TargetLM():
             convs_list = []
             for _ in range(batch_size):
                 conv = conv_template(self.template)
-                conv.system_message = system_message_template.format(original_system_message=conv.system_message)
+                conv.system_message = system_message_template.format(
+                    original_system_message=conv.system_message)
                 convs_list.append(conv)
         full_prompts = []
         for conv, prompt in zip(convs_list, prompts_list):
@@ -287,25 +291,3 @@ class TargetLM():
 
     def evaluate_log_likelihood(self, prompt, response):
         return self.model.evaluate_log_likelihood(prompt, response)
-
-
-class DefendedTargetLM:
-    def __init__(self, target_model, defense):
-        self.target_model = target_model
-        self.defense = defense
-
-    def get_response(self, prompts_list, responses_list=None, verbose=False):
-        if responses_list is not None:
-            assert len(responses_list) == len(prompts_list)
-        else:
-            responses_list = [None for _ in prompts_list]
-        defensed_response = [
-            self.defense.defense(
-                prompt, self.target_model, response=response
-            )
-            for prompt, response in zip(prompts_list, responses_list)
-        ]
-        return defensed_response
-
-    def evaluate_log_likelihood(self, prompt, response):
-        return self.target_model.evaluate_log_likelihood(prompt, response)
