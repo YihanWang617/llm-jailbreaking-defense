@@ -42,7 +42,7 @@ model = HuggingFace(transformer_model, tokenizer)
 
 # Use the preloaded HuggingFace model with a fschat conversation template `gemma`.
 # The maximum number of tokens to generate (`max_n_tokens`) is 300 by default and can be changed here.
-target_model = TargetLM(preloaded_model=model, template='gemma', max_n_tokens=300)
+target_model = TargetLM(preloaded_model=model, template_name='gemma', max_n_tokens=300)
 ```
 
 To load a built-in model by name:

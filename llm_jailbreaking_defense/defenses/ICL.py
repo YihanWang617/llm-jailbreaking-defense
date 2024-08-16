@@ -22,7 +22,7 @@ class ICLDefense(DefenseBase):
 
     def defense(self, prompt, target_lm, response=None):
         ICL_prompt = self.ICL_prefix + [prompt]
-        new_response = target_lm.get_response([ICL_prompt], verbose=self.verbose)[0]
+        new_response = target_lm.get_response(ICL_prompt, verbose=self.verbose)
         if self.verbose:
             print(f"Prompt: {prompt}")
             print(f"New response: {new_response}")

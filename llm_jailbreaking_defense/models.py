@@ -25,6 +25,7 @@
 Wrap targetLM with defense
 The attacker has access to the defense strategy
 """
+import copy
 from packaging import version
 from tqdm import tqdm
 
@@ -35,7 +36,6 @@ from fastchat.model import get_conversation_template
 from fastchat.conversation import (Conversation, SeparatorStyle,
                                    register_conv_template, get_conv_template)
 from llm_jailbreaking_defense.language_models import GPT, Claude, HuggingFace
-from llm_jailbreaking_defense.utils import remove_system_prompts_pap
 
 
 full_model_dict = {
@@ -110,11 +110,11 @@ def conv_template(template_name):
 
 
 def load_model(model_name, max_memory=None, quantization_config=None, **kwargs):
-    model_path, template = get_model_path_and_template(model_name)
+    model_path = get_model_path(model_name)
     if model_name.startswith("gpt-"):
-        lm = GPT(model_name, **kwargs)
+        model = GPT(model_name, **kwargs)
     elif model_name.startswith("claude-"):
-        lm = Claude(model_name, **kwargs)
+        model = Claude(model_name, **kwargs)
     else:
         if max_memory is not None:
             max_memory = {i: f"{max_memory}MB"
@@ -125,8 +125,8 @@ def load_model(model_name, max_memory=None, quantization_config=None, **kwargs):
             max_memory=max_memory,
             quantization_config=quantization_config).eval()
         tokenizer = load_tokenizer(model_path)
-        lm = HuggingFace(model, tokenizer)
-    return lm, template
+        model = HuggingFace(model, tokenizer)
+    return model
 
 
 def load_tokenizer(model_path):
@@ -177,15 +177,18 @@ def register_modified_llama_template():
     return template
 
 
-def get_model_path_and_template(model_name):
-    path = full_model_dict[model_name]["path"]
+def get_model_path(model_name):
+    return full_model_dict[model_name]["path"]
+
+
+def get_template_name(model_name):
     template = full_model_dict[model_name]["template"]
 
     if template == "llama-2" and version.parse(
             fastchat.__version__) < version.parse("0.2.24"):
         template = register_modified_llama_template()
 
-    return path, template
+    return template
 
 
 class TargetLM():
@@ -204,8 +207,8 @@ class TargetLM():
         top_p: float = 1,
         preloaded_model: object = None,
         batch_size: int = 1,
-        add_system_prompt: bool = True,
-        template: str = None,
+        template_name: str = None,
+        template: 'fastchat.conversation.Conversation' = None,
         load_in_8bit: bool = False,
     ):
         self.model_name = model_name
@@ -213,8 +216,6 @@ class TargetLM():
         self.max_n_tokens = max_n_tokens
         self.top_p = top_p
         self.batch_size = batch_size
-        self.add_system_prompt = add_system_prompt
-        self.template = template
 
         if load_in_8bit:
             self.quantization_config = BitsAndBytesConfig(load_in_8bit=True)
@@ -222,33 +223,37 @@ class TargetLM():
             self.quantization_config = None
 
         assert model_name is not None or preloaded_model is not None
+
         if preloaded_model is None:
-            self.model, self.template = load_model(
+            self.model = load_model(
                 model_name,
                 max_memory=max_memory,
                 quantization_config=self.quantization_config
             )
         else:
             self.model = preloaded_model
-            assert template is not None or model_name is not None
-            if self.template is None:
-                _, self.template = get_model_path_and_template(model_name)
 
-    def get_response(self, prompts_list, system_message_template=None, verbose=True, **kwargs):
+        if template is not None:
+            self.template = template
+        else:
+            if template_name is None:
+                if model_name is not None:
+                    template_name = get_template_name(model_name)
+                else:
+                    raise RuntimeError("Template is missing "
+                                       "(template, template_name, and model_name are all None)")
+            self.template = conv_template(template_name)
+
+    def get_response(self, prompts_list, template=None, verbose=True, **kwargs):
         only_one_prompt = isinstance(prompts_list, str)
         if only_one_prompt:
             prompts_list = [prompts_list]
 
+        if template is None:
+            template = self.template
+
         batch_size = len(prompts_list)
-        if system_message_template is None:
-            convs_list = [conv_template(self.template) for _ in range(batch_size)]
-        else:
-            convs_list = []
-            for _ in range(batch_size):
-                conv = conv_template(self.template)
-                conv.system_message = system_message_template.format(
-                    original_system_message=conv.system_message)
-                convs_list.append(conv)
+        convs_list = [copy.deepcopy(template) for _ in range(batch_size)]
         full_prompts = []
         for conv, prompt in zip(convs_list, prompts_list):
             if isinstance(prompt, str):
@@ -265,9 +270,6 @@ class TargetLM():
             else:
                 conv.append_message(conv.roles[1], None)
                 full_prompts.append(conv.get_prompt())
-
-        if not self.add_system_prompt:
-            full_prompts = remove_system_prompts_pap(self, full_prompts)
 
         if verbose:
             print(f"Calling the TargetLM with {len(full_prompts)} prompts")

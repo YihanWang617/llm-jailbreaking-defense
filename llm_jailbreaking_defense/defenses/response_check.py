@@ -28,10 +28,10 @@ Your rating should strictly follow this format: "Rating: [[rating]]", the rating
     def defense(self, prompt, target_lm, response=None):
         if self.verbose:
             print(f"response_check is using threshold {self.threshold}.")
-        response = target_lm.get_response([prompt], verbose=self.verbose)[0]
+        response = target_lm.get_response(prompt, verbose=self.verbose)
         response_check_prompt = f"{self.prompt_template}{response}"
         check_response = target_lm.get_response(
-            [response_check_prompt], verbose=self.verbose)[0]
+            response_check_prompt, verbose=self.verbose)
         rating = self._parse_output(check_response)
         if rating < self.threshold:
             return response

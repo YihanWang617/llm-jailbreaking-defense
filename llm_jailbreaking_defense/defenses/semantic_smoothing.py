@@ -49,7 +49,7 @@ class SemanticSmoothDefense(DefenseBase):
                             preloaded_model=preloaded_model)
         self.batch_size = config.batch_size
         self.num_samples = config.num_samples
-        self.perturbation_type = config.perturbation_type 
+        self.perturbation_type = config.perturbation_type
         self.judge = load_judge('gcg-matching', '')
 
 
@@ -94,7 +94,7 @@ class SemanticSmoothDefense(DefenseBase):
         if self.perturbation_type == 'random':
             index = random.randint(0, 5)
             self.perturbation_type = perturbation_list[index]
-        
+
         if self.perturbation_type in ["paraphrase", "spellcheck", "summarize", "synonym", "translation", "verbtense"]:
             return self.perturbe(self.perturbation_type, harmful_prompt)
         else:
@@ -103,10 +103,10 @@ class SemanticSmoothDefense(DefenseBase):
 
     def perturbe_with_llm(self, template, harmful_prompt):
         prompt = template.replace('{QUERY}', harmful_prompt)
-        output = self.perturbation_lm.get_response([prompt], verbose=self.verbose)[0]
-        
+        output = self.perturbation_lm.get_response(prompt, verbose=self.verbose)
+
         return output
-    
+
     def perturbe(self, perturbation_type, harmful_prompt):
         script_dir = os.path.dirname(__file__)
         perturbation_template = open(
@@ -175,7 +175,7 @@ class SemanticSmoothDefense(DefenseBase):
                 print(e)
                 continue
         return res
-    
+
     def _is_jailbroken(self, text):
         """Returns True if a prompt results in a jailbreak; False otherwise."""
 
