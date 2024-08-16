@@ -23,7 +23,7 @@ setup(
         "datasets>=2.14.0",
         "evaluate>=0.4.1",
         "anthropic>=0.7.6",
-        "openai==0.28",
+        "openai>=1.40",
         "chardet>=5.2.0",
         "accelerate>=0.24",
         "bitsandbytes>=0.41",

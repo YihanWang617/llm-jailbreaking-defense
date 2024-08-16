@@ -63,6 +63,10 @@ full_model_dict = {
         "path": "lmsys/vicuna-13b-v1.5",
         "template": "vicuna_v1.1"
     },
+    "vicuna-7b-v1.5": {
+        "path": "lmsys/vicuna-7b-v1.5",
+        "template": "vicuna_v1.1"
+    },
     "vicuna-13b-v1.5": {
         "path": "lmsys/vicuna-13b-v1.5",
         "template": "vicuna_v1.1"
@@ -71,8 +75,16 @@ full_model_dict = {
         "path": "meta-llama/Llama-2-13b-chat-hf",
         "template": "llama-2"
     },
+    "llama-2-7b": {
+        "path": "meta-llama/Llama-2-7b-chat-hf",
+        "template": "llama-2"
+    },
     "llama-2-13b": {
         "path": "meta-llama/Llama-2-13b-chat-hf",
+        "template": "llama-2"
+    },
+    "llama-2-70b": {
+        "path": "meta-llama/Llama-2-70b-chat-hf",
         "template": "llama-2"
     },
     "claude-instant-1": {
@@ -97,31 +109,23 @@ def conv_template(template_name):
     return template
 
 
-def load_model(model_name, max_memory=None, quantization_config=None):
+def load_model(model_name, max_memory=None, quantization_config=None, **kwargs):
     model_path, template = get_model_path_and_template(model_name)
     if model_name.startswith("gpt-"):
-        lm = GPT(model_name)
+        lm = GPT(model_name, **kwargs)
     elif model_name.startswith("claude-"):
-        lm = Claude(model_name)
+        lm = Claude(model_name, **kwargs)
     else:
-        if quantization_config is not None:
-            if max_memory is not None:
-                max_memory = {i: f"{max_memory}MB"
-                            for i in range(torch.cuda.device_count())}
-
-            model = AutoModelForCausalLM.from_pretrained(
-                    model_path,
-                    low_cpu_mem_usage=True, device_map="auto",
-                    max_memory=max_memory,
-                    quantization_config=quantization_config).eval()
-        else:
-            model = AutoModelForCausalLM.from_pretrained(
-                model_path,
-                torch_dtype=torch.float16,
-                low_cpu_mem_usage=True,device_map="auto").eval()
+        if max_memory is not None:
+            max_memory = {i: f"{max_memory}MB"
+                          for i in range(torch.cuda.device_count())}
+        model = AutoModelForCausalLM.from_pretrained(
+            model_path,
+            low_cpu_mem_usage=True, device_map="auto",
+            max_memory=max_memory,
+            quantization_config=quantization_config).eval()
         tokenizer = load_tokenizer(model_path)
         lm = HuggingFace(model, tokenizer)
-
     return lm, template
 
 
