@@ -32,7 +32,6 @@ from tqdm import tqdm
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 import fastchat
-from fastchat.model import get_conversation_template
 from fastchat.conversation import (Conversation, SeparatorStyle,
                                    register_conv_template, get_conv_template)
 from llm_jailbreaking_defense.language_models import GPT, Claude, HuggingFace
@@ -87,6 +86,26 @@ full_model_dict = {
         "path": "meta-llama/Llama-2-70b-chat-hf",
         "template": "llama-2"
     },
+    "llama-3-8b": {
+        "path": "meta-llama/Meta-Llama-3-8B-Instruct",
+        "template": "llama-3",
+    },
+    "llama-3-70b": {
+        "path": "meta-llama/Meta-Llama-3-70B-Instruct",
+        "template": "llama-3",
+    },
+    "llama-3.1-8b": {
+        "path": "meta-llama/Llama-3.1-8B-Instruct",
+        "template": "meta-llama-3.1",
+    },
+    "llama-3.1-70b": {
+        "path": "meta-llama/Llama-3.1-70B-Instruct",
+        "template": "meta-llama-3.1",
+    },
+    "llama-3.1-405b": {
+        "path": "meta-llama/Llama-3.1-405B-Instruct",
+        "template": "meta-llama-3.1",
+    },
     "claude-instant-1": {
         "path": "claude-instant-1",
         "template": "claude-instant-1"
@@ -99,11 +118,7 @@ full_model_dict = {
 
 
 def conv_template(template_name):
-    if template_name == "llama-2-new":
-        # For compatibility with GCG
-        template = get_conv_template(template_name)
-    else:
-        template = get_conversation_template(template_name)
+    template = get_conv_template(template_name)
     if template.name.startswith("llama-2"):
         template.sep2 = template.sep2.strip()
     return template
@@ -244,7 +259,7 @@ class TargetLM():
                                        "(template, template_name, and model_name are all None)")
             self.template = conv_template(template_name)
 
-    def get_response(self, prompts_list, template=None, verbose=True, **kwargs):
+    def get_response(self, prompts_list, template=None, verbose=False, **kwargs):
         only_one_prompt = isinstance(prompts_list, str)
         if only_one_prompt:
             prompts_list = [prompts_list]
