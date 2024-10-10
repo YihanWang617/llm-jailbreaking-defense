@@ -32,32 +32,71 @@ from tqdm import tqdm
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 import fastchat
+from fastchat.model import get_conversation_template
 from fastchat.conversation import (Conversation, SeparatorStyle,
                                    register_conv_template, get_conv_template)
 from llm_jailbreaking_defense.language_models import GPT, Claude, HuggingFace
 
 
 full_model_dict = {
+    "gpt-4o-mini": {
+        "path": "gpt-4o-mini",
+        "template": "gpt-4"
+    },
+    "gpt-4o-mini": {
+        "path": "gpt-4o-mini-2024-07-18",
+        "template": "gpt-4"
+    },
+    "gpt-4o": {
+        "path": "gpt-4o",
+        "template": "gpt-4"
+    },
+    "gpt-4o-2024-08-06": {
+        "path": "gpt-4o-2024-08-06",
+        "template": "gpt-4"
+    },
+    "gpt-4o-2024-05-13": {
+        "path": "gpt-4o-2024-05-13",
+        "template": "gpt-4"
+    },
     "gpt-4": {
         "path": "gpt-4",
         "template": "gpt-4"
     },
+    "gpt-4-turbo": {
+        "path": "gpt-4-turbo",
+        "template": "gpt-4"
+    },
+    "gpt-4-turbo-2024-04-09": {
+        "path": "gpt-4-turbo-2024-04-09",
+        "template": "gpt-4"
+    },
+    "gpt-4-0613": {
+        "path": "gpt-4-0613",
+        "template": "gpt-4"
+    }
+
     "gpt-3.5-turbo": {
         "path": "gpt-3.5-turbo-0613",
         "template": "gpt-3.5-turbo"
     },
     "gpt-3.5-turbo-0301": {
-        "path":"gpt-3.5-turbo-0301",
-        "template":"gpt-3.5-turbo"
+        "path": "gpt-3.5-turbo-0301",
+        "template": "gpt-3.5-turbo"
     },
     "gpt-3.5-turbo-0613": {
-        "path":"gpt-3.5-turbo-0613",
-        "template":"gpt-3.5-turbo"
+        "path": "gpt-3.5-turbo-0613",
+        "template": "gpt-3.5-turbo"
+    },
+    "gpt-3.5-turbo-1106": {
+        "path": "gpt-3.5-turbo-1106",
+        "template": "gpt-3.5-turbo"
     },
     "gpt-3.5-turbo-0125": {
-        "path":"gpt-3.5-turbo-0125",
-        "template":"gpt-3.5-turbo"
+        "path": "gpt-3.5-turbo-0125",
+        "template": "gpt-3.5-turbo"
     },
+
     "vicuna": {
         "path": "lmsys/vicuna-13b-v1.5",
         "template": "vicuna_v1.1"
@@ -70,6 +109,29 @@ full_model_dict = {
         "path": "lmsys/vicuna-13b-v1.5",
         "template": "vicuna_v1.1"
     },
+
+    "llama-3.1-8b": {
+        "path": "meta-llama/Llama-3.1-8B-Instruct",
+        "template": "meta-llama-3.1",
+    },
+    "llama-3.1-70b": {
+        "path": "meta-llama/Llama-3.1-70B-Instruct",
+        "template": "meta-llama-3.1",
+    },
+    "llama-3.1-405b": {
+        "path": "meta-llama/Llama-3.1-405B-Instruct",
+        "template": "meta-llama-3.1",
+    },
+    "llama-3-8b": {
+        "path": "meta-llama/Meta-Llama-3-8B-Instruct",
+        "template": "llama-3",
+    },
+    "llama-3-70b": {
+        "path": "meta-llama/Meta-Llama-3-70B-Instruct",
+        "template": "llama-3",
+    },
+
+
     "llama-2": {
         "path": "meta-llama/Llama-2-13b-chat-hf",
         "template": "llama-2"
@@ -86,26 +148,7 @@ full_model_dict = {
         "path": "meta-llama/Llama-2-70b-chat-hf",
         "template": "llama-2"
     },
-    "llama-3-8b": {
-        "path": "meta-llama/Meta-Llama-3-8B-Instruct",
-        "template": "llama-3",
-    },
-    "llama-3-70b": {
-        "path": "meta-llama/Meta-Llama-3-70B-Instruct",
-        "template": "llama-3",
-    },
-    "llama-3.1-8b": {
-        "path": "meta-llama/Llama-3.1-8B-Instruct",
-        "template": "meta-llama-3.1",
-    },
-    "llama-3.1-70b": {
-        "path": "meta-llama/Llama-3.1-70B-Instruct",
-        "template": "meta-llama-3.1",
-    },
-    "llama-3.1-405b": {
-        "path": "meta-llama/Llama-3.1-405B-Instruct",
-        "template": "meta-llama-3.1",
-    },
+
     "claude-instant-1": {
         "path": "claude-instant-1",
         "template": "claude-instant-1"
@@ -118,7 +161,11 @@ full_model_dict = {
 
 
 def conv_template(template_name):
-    template = get_conv_template(template_name)
+    if template_name == "llama-2-new":
+        # For compatibility with GCG
+        template = get_conv_template(template_name)
+    else:
+        template = get_conversation_template(template_name)
     if template.name.startswith("llama-2"):
         template.sep2 = template.sep2.strip()
     return template
