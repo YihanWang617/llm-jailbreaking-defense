@@ -74,7 +74,7 @@ full_model_dict = {
     "gpt-4-0613": {
         "path": "gpt-4-0613",
         "template": "gpt-4"
-    }
+    },
 
     "gpt-3.5-turbo": {
         "path": "gpt-3.5-turbo-0613",
