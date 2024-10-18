@@ -166,6 +166,9 @@ def register_modified_llama_template():
     return template
 
 def get_model_path_and_template(model_name):
+    if model_name not in full_model_dict:
+        return None, None
+    
     path = full_model_dict[model_name]["path"]
     template = full_model_dict[model_name]["template"]
 
@@ -221,33 +224,40 @@ class TargetLM():
 
     def get_response(self, prompts_list, system_message_template=None, verbose=True, **kwargs):
         batch_size = len(prompts_list)
-        if system_message_template is None:
-            convs_list = [conv_template(self.template) for _ in range(batch_size)]
-        else:
-            convs_list = []
-            for _ in range(batch_size):
-                conv = conv_template(self.template)
-                conv.system_message = system_message_template.format(original_system_message=conv.system_message)
-                convs_list.append(conv)
-        full_prompts = []
-        for conv, prompt in zip(convs_list, prompts_list):
-            if isinstance(prompt, str):
-                conv.append_message(conv.roles[0], prompt)
-            elif isinstance(prompt, list): # handle multi-round conversations
-                for i, p in enumerate(prompt):
-                    conv.append_message(conv.roles[i % 2], p)
-            else:
-                raise NotImplementedError
 
-            if self.model_name is not None and "gpt" in self.model_name:
-                # Openai does not have separators
-                full_prompts.append(conv.to_openai_api_messages())
+        # using fastchat conv template is the template is given in the model registration
+        if self.template is not None:
+            if system_message_template is None:
+                convs_list = [conv_template(self.template) for _ in range(batch_size)]
             else:
-                conv.append_message(conv.roles[1], None)
-                full_prompts.append(conv.get_prompt())
+                convs_list = []
+                for _ in range(batch_size):
+                    conv = conv_template(self.template)
+                    conv.system_message = system_message_template.format(original_system_message=conv.system_message)
+                    convs_list.append(conv)
+            full_prompts = []
+            for conv, prompt in zip(convs_list, prompts_list):
+                if isinstance(prompt, str):
+                    conv.append_message(conv.roles[0], prompt)
+                elif isinstance(prompt, list): # handle multi-round conversations
+                    for i, p in enumerate(prompt):
+                        conv.append_message(conv.roles[i % 2], p)
+                else:
+                    raise NotImplementedError
 
-        if not self.add_system_prompt:
-            full_prompts = remove_system_prompts_pap(self, full_prompts)
+                if self.model_name is not None and "gpt" in self.model_name:
+                    # Openai does not have separators
+                    full_prompts.append(conv.to_openai_api_messages())
+                else:
+                    conv.append_message(conv.roles[1], None)
+                    full_prompts.append(conv.get_prompt())
+
+            if not self.add_system_prompt:
+                full_prompts = remove_system_prompts_pap(self, full_prompts)
+        else: # otherwise, if the model is a Huggingface model, use the chat template specified in tokenizer_config.json
+            convs = [[{'role': 'user', 'content': c}] for c in prompts_list]
+            assert hasattr(self.model, "tokenizer"), "The model must be a huggingface model with a tokenizer if no chat template is provided."
+            full_prompts = [self.model.tokenizer.apply_chat_template(conv, tokenize=False) for conv in convs]
 
         if verbose:
             print(f"Calling the TargetLM with {len(full_prompts)} prompts")
