@@ -5,15 +5,11 @@ class DefenseConfig:
     defense_method: str = field(
         default='None'
     )
-    no_system_prompt: bool = field(
-        default=False
-    )
     verbose: bool= field(
         default=False
     )
 
     def load_from_args(self, args):
-        self.no_system_prompt = args.no_system_prompt
         self.verbose = args.verbose
 
 

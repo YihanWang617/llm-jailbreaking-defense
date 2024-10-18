@@ -44,7 +44,7 @@ class BackTranslationDefense(DefenseBase):
         if self.verbose:
             print("Adversarial harmful prompt: \n", prompt)
         if response is None:
-            response = target_lm.get_response([prompt], verbose=self.verbose)[0]
+            response = target_lm.get_response(prompt, verbose=self.verbose)
 
         if check_rejection(response, exclude_lack_of_info=False):
             return "I'm sorry, but I cannot assist with that request."

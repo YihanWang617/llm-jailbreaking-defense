@@ -3,7 +3,7 @@ from llm_jailbreaking_defense import TargetLM
 # target_model = TargetLM(model_name='vicuna-13b-v1.5', max_n_tokens=300)
 
 
-# from llm_jailbreaking_defense import DefendedTargetLM, BacktranslationConfig, load_defense
+from llm_jailbreaking_defense import DefendedTargetLM, BacktranslationConfig, load_defense
 
 # # Specify a defense method by creating a configuration object
 # config = BacktranslationConfig()
@@ -20,9 +20,9 @@ from llm_jailbreaking_defense import TargetLM, HuggingFace
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 # Load the model and tokenizer from Huggingface.
-transformer_model = AutoModelForCausalLM.from_pretrained('google/gemma-7b').cuda()
-tokenizer = AutoTokenizer.from_pretrained('google/gemma-7b')
-import pdb; pdb.set_trace()
+transformer_model = AutoModelForCausalLM.from_pretrained('meta-llama/Meta-Llama-3-8B-Instruct').cuda()
+tokenizer = AutoTokenizer.from_pretrained('meta-llama/Meta-Llama-3-8B-Instruct')
+tokenizer.add_special_tokens({'pad_token': '[PAD]'})
 model = HuggingFace(transformer_model, tokenizer)
 
 # Use the preloaded HuggingFace model with a fschat conversation template `gemma`.

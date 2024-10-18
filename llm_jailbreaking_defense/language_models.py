@@ -31,7 +31,7 @@ from typing import Dict, List
 
 
 class LanguageModel():
-    def __init__(self, model_name):
+    def __init__(self, model_name: str = None):
         self.model_name = model_name
 
     def batched_generate(self, prompts: List, max_n_tokens: int, temperature: float):
@@ -50,8 +50,8 @@ class LanguageModel():
 
 
 class HuggingFace(LanguageModel):
-    def __init__(self, model_name, model, tokenizer):
-        super().__init__(model_name)
+    def __init__(self, model, tokenizer):
+        super().__init__()
         self.model = model
         self.tokenizer = tokenizer
         self.eos_token_ids = [self.tokenizer.eos_token_id]
@@ -129,12 +129,17 @@ class HuggingFace(LanguageModel):
 
 
 class GPT(LanguageModel):
-    API_RETRY_SLEEP = 10
     API_ERROR_OUTPUT = "$ERROR$"
-    API_QUERY_SLEEP = 0.5
-    API_MAX_RETRY = 5
-    API_TIMEOUT = 200
-    openai.api_key = os.getenv("OPENAI_API_KEY")
+
+    def __init__(self, model_name, timeout=200, max_retry=5, retry_sleep=5):
+        super().__init__(model_name)
+        self.timeout = timeout
+        self.max_retry = max_retry
+        self.retry_sleep = retry_sleep
+        self.client = openai.Client(
+            api_key=os.environ.get("OPENAI_API_KEY"),
+            timeout=timeout,
+        )
 
     def generate(self,
                  conv: List[Dict],
@@ -151,23 +156,20 @@ class GPT(LanguageModel):
             str: generated response
         """
         output = self.API_ERROR_OUTPUT
-        for _ in range(self.API_MAX_RETRY):
+        for _ in range(self.max_retry):
             try:
-                response = openai.ChatCompletion.create(
+                response = self.client.chat.completions.create(
                     model = self.model_name,
                     messages = conv,
                     max_tokens = max_n_tokens,
                     temperature = temperature,
                     top_p = top_p,
-                    request_timeout = self.API_TIMEOUT,
                 )
-                output = response["choices"][0]["message"]["content"]
-                break
-            except openai.error.OpenAIError as e:
+                output = response.choices[0].message.content
+                return output
+            except openai.APIError as e:
                 print(type(e), e)
-                time.sleep(self.API_RETRY_SLEEP)
-
-            time.sleep(self.API_QUERY_SLEEP)
+                time.sleep(self.retry_sleep)
         return output
 
     def batched_generate(self,

@@ -25,6 +25,7 @@
 Wrap targetLM with defense
 The attacker has access to the defense strategy
 """
+import copy
 from packaging import version
 from tqdm import tqdm
 
@@ -38,42 +39,116 @@ from llm_jailbreaking_defense.language_models import GPT, Claude, HuggingFace
 
 
 full_model_dict = {
+    "gpt-4o-mini": {
+        "path": "gpt-4o-mini",
+        "template": "gpt-4"
+    },
+    "gpt-4o-mini": {
+        "path": "gpt-4o-mini-2024-07-18",
+        "template": "gpt-4"
+    },
+    "gpt-4o": {
+        "path": "gpt-4o",
+        "template": "gpt-4"
+    },
+    "gpt-4o-2024-08-06": {
+        "path": "gpt-4o-2024-08-06",
+        "template": "gpt-4"
+    },
+    "gpt-4o-2024-05-13": {
+        "path": "gpt-4o-2024-05-13",
+        "template": "gpt-4"
+    },
     "gpt-4": {
         "path": "gpt-4",
         "template": "gpt-4"
     },
+    "gpt-4-turbo": {
+        "path": "gpt-4-turbo",
+        "template": "gpt-4"
+    },
+    "gpt-4-turbo-2024-04-09": {
+        "path": "gpt-4-turbo-2024-04-09",
+        "template": "gpt-4"
+    },
+    "gpt-4-0613": {
+        "path": "gpt-4-0613",
+        "template": "gpt-4"
+    },
+
     "gpt-3.5-turbo": {
         "path": "gpt-3.5-turbo-0613",
         "template": "gpt-3.5-turbo"
     },
     "gpt-3.5-turbo-0301": {
-        "path":"gpt-3.5-turbo-0301",
-        "template":"gpt-3.5-turbo"
+        "path": "gpt-3.5-turbo-0301",
+        "template": "gpt-3.5-turbo"
     },
     "gpt-3.5-turbo-0613": {
-        "path":"gpt-3.5-turbo-0613",
-        "template":"gpt-3.5-turbo"
+        "path": "gpt-3.5-turbo-0613",
+        "template": "gpt-3.5-turbo"
+    },
+    "gpt-3.5-turbo-1106": {
+        "path": "gpt-3.5-turbo-1106",
+        "template": "gpt-3.5-turbo"
     },
     "gpt-3.5-turbo-0125": {
-        "path":"gpt-3.5-turbo-0125",
-        "template":"gpt-3.5-turbo"
+        "path": "gpt-3.5-turbo-0125",
+        "template": "gpt-3.5-turbo"
     },
+
     "vicuna": {
         "path": "lmsys/vicuna-13b-v1.5",
+        "template": "vicuna_v1.1"
+    },
+    "vicuna-7b-v1.5": {
+        "path": "lmsys/vicuna-7b-v1.5",
         "template": "vicuna_v1.1"
     },
     "vicuna-13b-v1.5": {
         "path": "lmsys/vicuna-13b-v1.5",
         "template": "vicuna_v1.1"
     },
+
+    "llama-3.1-8b": {
+        "path": "meta-llama/Llama-3.1-8B-Instruct",
+        "template": "meta-llama-3.1",
+    },
+    "llama-3.1-70b": {
+        "path": "meta-llama/Llama-3.1-70B-Instruct",
+        "template": "meta-llama-3.1",
+    },
+    "llama-3.1-405b": {
+        "path": "meta-llama/Llama-3.1-405B-Instruct",
+        "template": "meta-llama-3.1",
+    },
+    "llama-3-8b": {
+        "path": "meta-llama/Meta-Llama-3-8B-Instruct",
+        "template": "llama-3",
+    },
+    "llama-3-70b": {
+        "path": "meta-llama/Meta-Llama-3-70B-Instruct",
+        "template": "llama-3",
+    },
+
+
     "llama-2": {
         "path": "meta-llama/Llama-2-13b-chat-hf",
+        "template": "llama-2"
+    },
+    "llama-2-7b": {
+        "path": "meta-llama/Llama-2-7b-chat-hf",
         "template": "llama-2"
     },
     "llama-2-13b": {
         "path": "meta-llama/Llama-2-13b-chat-hf",
         "template": "llama-2"
     },
+    "llama-2-70b": {
+        "path": "meta-llama/Llama-2-70b-chat-hf",
+        "template": "llama-2"
+    },
+
     "claude-instant-1": {
         "path": "claude-instant-1",
         "template": "claude-instant-1"
@@ -96,45 +171,43 @@ def conv_template(template_name):
     return template
 
 
-def load_indiv_model(model_name, max_memory=None, quantization_config=None):
-    model_path, template = get_model_path_and_template(model_name)
+def load_model(model_name, max_memory=None, quantization_config=None, **kwargs):
+    model_path = get_model_path(model_name)
     if model_name.startswith("gpt-"):
-        lm = GPT(model_name)
+        model = GPT(model_name, **kwargs)
     elif model_name.startswith("claude-"):
-        lm = Claude(model_name)
+        model = Claude(model_name, **kwargs)
     else:
-        if quantization_config is not None:
-            if max_memory is not None:
-                max_memory = {i: f"{max_memory}MB"
-                            for i in range(torch.cuda.device_count())}
-
-            model = AutoModelForCausalLM.from_pretrained(
-                    model_path,
-                    low_cpu_mem_usage=True, device_map="auto",
-                    max_memory=max_memory,
-                    quantization_config=quantization_config).eval()
-        else:
-            model = AutoModelForCausalLM.from_pretrained(
-                model_path,
-                torch_dtype=torch.float16,
-                low_cpu_mem_usage=True,device_map="auto").eval()
-
-        tokenizer = AutoTokenizer.from_pretrained(
+        if max_memory is not None:
+            max_memory = {i: f"{max_memory}MB"
+                          for i in range(torch.cuda.device_count())}
+        model = AutoModelForCausalLM.from_pretrained(
             model_path,
-            use_fast=False
-        )
-        if "llama-2" in model_path.lower():
-            tokenizer.pad_token = tokenizer.unk_token
-            tokenizer.padding_side = "left"
-        if "vicuna" in model_path.lower():
-            tokenizer.pad_token = tokenizer.eos_token
-            tokenizer.padding_side = "left"
-        if not tokenizer.pad_token:
-            tokenizer.pad_token = tokenizer.eos_token
+            low_cpu_mem_usage=True, device_map="auto",
+            max_memory=max_memory,
+            quantization_config=quantization_config).eval()
+        tokenizer = load_tokenizer(model_path)
+        model = HuggingFace(model, tokenizer)
+    return model
 
-        lm = HuggingFace(model_name, model, tokenizer)
 
-    return lm, template
+def load_tokenizer(model_path):
+    tokenizer = AutoTokenizer.from_pretrained(
+        model_path,
+        use_fast=False
+    )
+    if "llama-3" in model_path.lower():
+        tokenizer.pad_token = tokenizer.eos_token
+        tokenizer.padding_side = "left"
+    if "llama-2" in model_path.lower():
+        tokenizer.pad_token = tokenizer.unk_token
+        tokenizer.padding_side = "left"
+    if "vicuna" in model_path.lower():
+        tokenizer.pad_token = tokenizer.eos_token
+        tokenizer.padding_side = "left"
+    if not tokenizer.pad_token:
+        tokenizer.pad_token = tokenizer.eos_token
+    return tokenizer
 
 
 def register_model_path_and_template(model_name, model_path, model_template):
@@ -165,18 +238,25 @@ def register_modified_llama_template():
           f"Template changed to `{template}`.")
     return template
 
-def get_model_path_and_template(model_name):
+
+def get_model_path(model_name):
     if model_name not in full_model_dict:
-        return None, None
-    
-    path = full_model_dict[model_name]["path"]
+         print(f"No model with model_name {model_name} found in the model_dict")
+         return None
+    return full_model_dict[model_name]["path"]
+
+
+def get_template_name(model_name):
+    if model_name not in full_model_dict:
+         print(f"No model with model_name {model_name} found in the model_dict")
+         return None
     template = full_model_dict[model_name]["template"]
 
     if template == "llama-2" and version.parse(
             fastchat.__version__) < version.parse("0.2.24"):
         template = register_modified_llama_template()
 
-    return path, template
+    return template
 
 
 class TargetLM():
@@ -195,8 +275,8 @@ class TargetLM():
         top_p: float = 1,
         preloaded_model: object = None,
         batch_size: int = 1,
-        add_system_prompt: bool = True,
-        template: str = None,
+        template_name: str = None,
+        template: 'fastchat.conversation.Conversation' = None,
         load_in_8bit: bool = False,
     ):
         self.model_name = model_name
@@ -204,38 +284,45 @@ class TargetLM():
         self.max_n_tokens = max_n_tokens
         self.top_p = top_p
         self.batch_size = batch_size
-        self.add_system_prompt = add_system_prompt
-        self.template = template
-        self.quantization_config = BitsAndBytesConfig(load_in_8bit=load_in_8bit)
+
+        if load_in_8bit:
+            self.quantization_config = BitsAndBytesConfig(load_in_8bit=True)
+        else:
+            self.quantization_config = None
 
         assert model_name is not None or preloaded_model is not None
+
         if preloaded_model is None:
-            if not load_in_8bit:
-                self.model, self.template = load_indiv_model(model_name)
-            else:
-                self.model, self.template = load_indiv_model(
-                    model_name, max_memory=max_memory, quantization_config=self.quantization_config)
+            self.model = load_model(
+                model_name,
+                max_memory=max_memory,
+                quantization_config=self.quantization_config
+            )
         else:
             self.model = preloaded_model
-            assert template is not None or model_name is not None
-            if self.template is None:
-                _, self.template = get_model_path_and_template(model_name)
 
-
-    def get_response(self, prompts_list, system_message_template=None, verbose=True, **kwargs):
-        batch_size = len(prompts_list)
-
-        # using fastchat conv template is the template is given in the model registration
-        if self.template is not None:
-            if system_message_template is None:
-                convs_list = [conv_template(self.template) for _ in range(batch_size)]
+        if template is not None:
+            self.template = template
+        else:
+            if template_name is None:
+                template_name = get_template_name(model_name)
+            if template_name is not None:
+                self.template = conv_template(template_name)
             else:
-                convs_list = []
-                for _ in range(batch_size):
-                    conv = conv_template(self.template)
-                    conv.system_message = system_message_template.format(original_system_message=conv.system_message)
-                    convs_list.append(conv)
-            full_prompts = []
+                self.template = None
+
+    def get_response(self, prompts_list, template=None, verbose=False, **kwargs):
+        only_one_prompt = isinstance(prompts_list, str)
+        if only_one_prompt:
+            prompts_list = [prompts_list]
+
+        if template is None:
+            template = self.template
+
+        batch_size = len(prompts_list)
+        convs_list = [copy.deepcopy(template) for _ in range(batch_size)]
+        full_prompts = []
+        if self.template is not None:
             for conv, prompt in zip(convs_list, prompts_list):
                 if isinstance(prompt, str):
                     conv.append_message(conv.roles[0], prompt)
@@ -244,88 +331,38 @@ class TargetLM():
                         conv.append_message(conv.roles[i % 2], p)
                 else:
                     raise NotImplementedError
-
+                
                 if self.model_name is not None and "gpt" in self.model_name:
                     # Openai does not have separators
                     full_prompts.append(conv.to_openai_api_messages())
                 else:
                     conv.append_message(conv.roles[1], None)
                     full_prompts.append(conv.get_prompt())
-
-            if not self.add_system_prompt:
-                full_prompts = remove_system_prompts_pap(self, full_prompts)
-        else: # otherwise, if the model is a Huggingface model, use the chat template specified in tokenizer_config.json
+        else:
             convs = [[{'role': 'user', 'content': c}] for c in prompts_list]
             assert hasattr(self.model, "tokenizer"), "The model must be a huggingface model with a tokenizer if no chat template is provided."
-            full_prompts = [self.model.tokenizer.apply_chat_template(conv, tokenize=False) for conv in convs]
+            full_prompts = [self.model.tokenizer.apply_chat_template(conv, tokenize=False, add_generation_prompt=True) for conv in convs]
+
 
         if verbose:
             print(f"Calling the TargetLM with {len(full_prompts)} prompts")
         outputs_list = []
         for i in tqdm(range((len(full_prompts)-1) // self.batch_size + 1),
-                  desc="Target model inference on batch: ",
-                  disable=(not verbose)):
-
+                      desc="Target model inference on batch: ",
+                      disable=(not verbose)):
             # Get the current batch of inputs
             batch = full_prompts[i * self.batch_size:(i+1) * self.batch_size]
-
-            # Run a forward pass through the LLM for each perturbed copy
             batch_outputs = self.model.batched_generate(
                 batch,
                 max_n_tokens=self.max_n_tokens,
                 temperature=self.temperature,
                 top_p=self.top_p)
-
             outputs_list.extend(batch_outputs)
-        return outputs_list
+
+        if only_one_prompt:
+            return outputs_list[0]
+        else:
+            return outputs_list
 
     def evaluate_log_likelihood(self, prompt, response):
         return self.model.evaluate_log_likelihood(prompt, response)
-
-
-class DefendedTargetLM:
-    def __init__(self, target_model, defense):
-        self.target_model = target_model
-        self.defense = defense
-
-    def get_response(self, prompts_list, responses_list=None, verbose=False):
-        if responses_list is not None:
-            assert len(responses_list) == len(prompts_list)
-        else:
-            responses_list = [None for _ in prompts_list]
-        defensed_response = [
-            self.defense.defense(
-                prompt, self.target_model, response=response
-            )
-            for prompt, response in zip(prompts_list, responses_list)
-        ]
-        return defensed_response
-
-    def evaluate_log_likelihood(self, prompt, response):
-        return self.target_model.evaluate_log_likelihood(prompt, response)
-
-
-def remove_system_prompts_pap(target_lm, full_prompts):
-    """Remove system prompts for PAP.
-
-    This is mainly used for reproducing exisitng attacks such as PAP which
-    does not add system prompts.
-    """
-    print("Removing the system prompt. (Only for running PAP!)")
-    if "gpt" in target_lm.model_name:
-        full_prompts = [[a for a in message if a["role"] != "system"]
-                            for message in full_prompts]
-        return full_prompts
-    elif "llama" in target_lm.model_name:
-        for i, prompt in enumerate(full_prompts):
-            assert prompt.startswith("[INST]")
-            assert prompt.endswith("[/INST]")
-            # Just for consistency with PAP. Do not use for other attacks.
-            full_prompts[i] = (
-                target_lm.model.tokenizer.bos_token +
-                f"[INST] <<SYS>>\n{None}\n<</SYS>>\n\n"
-                f"{prompt[0][7:-8]} [/INST]"
-            )
-        return full_prompts
-    else:
-        raise NotImplementedError

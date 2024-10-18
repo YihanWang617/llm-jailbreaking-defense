@@ -36,13 +36,14 @@ from llm_jailbreaking_defense import TargetLM, HuggingFace
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 # Load the model and tokenizer from Huggingface.
-transformer_model = AutoModelForCausalLM.from_pretrained('google/gemma-7b')
-tokenizer = AutoTokenizer.from_pretrained('google/gemma-7b')
-model = HuggingFace('gemma', transformer_model, tokenizer)
+transformer_model = AutoModelForCausalLM.from_pretrained('meta-llama/Meta-Llama-3-8B-Instruct').cuda()
+tokenizer = AutoTokenizer.from_pretrained('meta-llama/Meta-Llama-3-8B-Instruct')
+tokenizer.add_special_tokens({'pad_token': '[PAD]'})
+model = HuggingFace(transformer_model, tokenizer)
 
 # Use the preloaded HuggingFace model with a fschat conversation template `gemma`.
 # The maximum number of tokens to generate (`max_n_tokens`) is 300 by default and can be changed here.
-target_model = TargetLM(preloaded_model=model, template='gemma', max_n_tokens=300)
+target_model = TargetLM(preloaded_model=model, max_n_tokens=300)  # an optional template_name can also be specified to load chat template from fastchat. Otherwise the chat template will be loaded from the Huggingface Tokenizer (if it exists.)
 ```
 
 To load a built-in model by name:
@@ -84,6 +85,7 @@ this library has also supported several other defenses which can be loaded simpl
 
 | Defense name | Configuration name | Source |
 | -------- | ------- | ------- |
+| Backtranslation | `BacktranslationConfig` | [Defending LLMs against Jailbreaking Attacks via Backtranslation](https://arxiv.org/abs/2402.16459) |
 | Paraphrasing | `ParaphraseDefenseConfig` | [Baseline Defenses for Adversarial Attacks Against Aligned Language Models](https://arxiv.org/abs/2309.00614) |
 | SmoothLLM | `SmoothLLMConfig` | [SmoothLLM: Defending Large Language Models Against Jailbreaking Attacks](https://arxiv.org/abs/2310.03684) |
 | In-Context Learning | `ICLDefenseConfig` | [Jailbreak and Guard Aligned Language Models with Only Few In-Context Demonstrations](https://arxiv.org/abs/2310.06387) |
