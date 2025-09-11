@@ -15,7 +15,8 @@ from .base import DefenseBase, DefenseConfig
 class SmoothLLMConfig(DefenseConfig):
     perturbation_type: str = field(default='swap')
     perturbation_ratio: float = field(default=0.1)
-    num_sampless: int = field(default=3)
+    num_samples: int = field(default=3)
+    batch_size: int = field(default=1)
 
     def __post_init__(self):
         self.defense_method = "SmoothLLM"
@@ -29,7 +30,7 @@ class SmoothLLMConfig(DefenseConfig):
 
 
 class SmoothLLMDefense(DefenseBase):
-    def __init__(self, config, **kwargs):
+    def __init__(self, config, preloaded_model,**kwargs):
         super().__init__(config)
         self.batch_size = config.batch_size
         self.num_samples = config.num_samples
